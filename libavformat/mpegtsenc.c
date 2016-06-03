@@ -101,6 +101,7 @@ typedef struct MpegTSWrite {
 #define MPEGTS_FLAG_AAC_LATM        0x02
 #define MPEGTS_FLAG_PAT_PMT_AT_FRAMES           0x04
 #define MPEGTS_FLAG_SYSTEM_B        0x08
+#define MPEGTS_FLAG_NO_SDT          0x16
     int flags;
     int copyts;
     int tables_version;
@@ -1000,10 +1001,11 @@ static void retransmit_si_info(AVFormatContext *s, int force_pat, int64_t dts)
             ts->last_sdt_ts = FFMAX(dts, ts->last_sdt_ts);
         mpegts_write_sdt(s);
     }
-    if (++ts->pat_packet_count == ts->pat_packet_period ||
+    if (!(ts->flags & MPEGTS_FLAG_NO_SDT) &&
+        (++ts->pat_packet_count == ts->pat_packet_period ||
         (dts != AV_NOPTS_VALUE && ts->last_pat_ts == AV_NOPTS_VALUE) ||
         (dts != AV_NOPTS_VALUE && dts - ts->last_pat_ts >= ts->pat_period*90000.0) ||
-        force_pat) {
+        force_pat)) {
         ts->pat_packet_count = 0;
         if (dts != AV_NOPTS_VALUE)
             ts->last_pat_ts = FFMAX(dts, ts->last_pat_ts);
@@ -1828,6 +1830,9 @@ static const AVOption options[] = {
       AV_OPT_FLAG_ENCODING_PARAM, "mpegts_flags" },
     { "system_b", "Conform to System B (DVB) instead of System A (ATSC)",
       0, AV_OPT_TYPE_CONST, { .i64 = MPEGTS_FLAG_SYSTEM_B }, 0, INT_MAX,
+      AV_OPT_FLAG_ENCODING_PARAM, "mpegts_flags" },
+    { "no_sdt", "Do not write SDT table in the output stream",
+      0, AV_OPT_TYPE_CONST, { .i64 = MPEGTS_FLAG_NO_SDT}, 0, INT_MAX,
       AV_OPT_FLAG_ENCODING_PARAM, "mpegts_flags" },
     // backward compatibility
     { "resend_headers", "Reemit PAT/PMT before writing the next packet",
