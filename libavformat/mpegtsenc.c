@@ -992,20 +992,20 @@ static void retransmit_si_info(AVFormatContext *s, int force_pat, int64_t dts)
     MpegTSWrite *ts = s->priv_data;
     int i;
 
-    if (++ts->sdt_packet_count == ts->sdt_packet_period ||
+    if (!(ts->flags & MPEGTS_FLAG_NO_SDT) && (
+        ++ts->sdt_packet_count == ts->sdt_packet_period ||
         (dts != AV_NOPTS_VALUE && ts->last_sdt_ts == AV_NOPTS_VALUE) ||
-        (dts != AV_NOPTS_VALUE && dts - ts->last_sdt_ts >= ts->sdt_period*90000.0)
+        (dts != AV_NOPTS_VALUE && dts - ts->last_sdt_ts >= ts->sdt_period*90000.0))
     ) {
         ts->sdt_packet_count = 0;
         if (dts != AV_NOPTS_VALUE)
             ts->last_sdt_ts = FFMAX(dts, ts->last_sdt_ts);
         mpegts_write_sdt(s);
     }
-    if (!(ts->flags & MPEGTS_FLAG_NO_SDT) &&
-        (++ts->pat_packet_count == ts->pat_packet_period ||
+    if (++ts->pat_packet_count == ts->pat_packet_period ||
         (dts != AV_NOPTS_VALUE && ts->last_pat_ts == AV_NOPTS_VALUE) ||
         (dts != AV_NOPTS_VALUE && dts - ts->last_pat_ts >= ts->pat_period*90000.0) ||
-        force_pat)) {
+        force_pat) {
         ts->pat_packet_count = 0;
         if (dts != AV_NOPTS_VALUE)
             ts->last_pat_ts = FFMAX(dts, ts->last_pat_ts);
